@@ -89,7 +89,7 @@
         app:layout_constraintTop_toBottomOf="@+id/activity_record_signal_strength_label_ui"/>
 
     <TextView
-        android:id="@+id/activity_record_lte_rsrp_text_ui"
+        android:id="@+id/activity_record_mcc_mnc_text_ui"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
@@ -98,10 +98,38 @@
         android:gravity="right"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:textColor="@color/activity_record_text_value_color"
-        app:layout_constraintEnd_toStartOf="@+id/activity_record_lte_rsrp_label_ui"
+        app:layout_constraintEnd_toStartOf="@+id/activity_record_mcc_mnc_label_ui"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/activity_record_signal_strength_text_ui"/>
+
+    <TextView
+        android:id="@+id/activity_record_mcc_mnc_label_ui"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:text="@string/activity_record_network_label_text"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        app:layout_constraintBottom_toBottomOf="@+id/activity_record_mcc_mnc_text_ui"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/activity_record_mcc_mnc_text_ui"
+        app:layout_constraintTop_toTopOf="@+id/activity_record_mcc_mnc_text_ui"/>
+
+    <TextView
+        android:id="@+id/activity_record_lte_rsrp_text_ui"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:gravity="right"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:textColor="@color/activity_record_text_value_color"
+        app:layout_constraintEnd_toStartOf="@+id/activity_record_lte_rsrp_label_ui"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activity_record_mcc_mnc_text_ui"/>
 
     <TextView
         android:id="@+id/activity_record_lte_rsrp_label_ui"
@@ -201,6 +229,34 @@
         app:layout_constraintTop_toTopOf="@+id/activity_record_data_points_text_ui"/>
 
     <TextView
+        android:id="@+id/activity_record_rssnr_text_ui"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:gravity="right"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:textColor="@color/activity_record_text_value_color"
+        app:layout_constraintEnd_toStartOf="@+id/activity_record_rssnr_label_ui"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activity_record_data_points_text_ui"/>
+
+    <TextView
+        android:id="@+id/activity_record_rssnr_label_ui"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:text="@string/activity_record_rssnr_label_text"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        app:layout_constraintBottom_toBottomOf="@+id/activity_record_rssnr_text_ui"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/activity_record_rssnr_text_ui"
+        app:layout_constraintTop_toTopOf="@+id/activity_record_rssnr_text_ui"/>
+
+    <TextView
         android:id="@+id/activity_record_offset_text_ui"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -213,7 +269,7 @@
         app:layout_constraintEnd_toStartOf="@+id/activity_record_offset_label_ui"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/activity_record_data_points_text_ui"/>
+        app:layout_constraintTop_toBottomOf="@+id/activity_record_rssnr_text_ui"/>
 
     <TextView
         android:id="@+id/activity_record_offset_label_ui"

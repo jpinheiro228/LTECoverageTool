@@ -66,7 +66,7 @@ public class RecordActivity extends AppCompatActivity {
     private TextView mRecordingImageLabel;
     private AlphaAnimation mRecordingImageAnimation;
     private SignalStrengthListener mSignalStrengthListener;
-    private TextView mRsrpText, mRsrqText, mPciText, mDataPointsText, mOffsetText, mSignalStrengthText;
+    private TextView mRsrpText, mRsrqText, mPciText, mRssnrText, mOperatorText, mDataPointsText, mOffsetText, mSignalStrengthText;
     private DataReading mCurrentReading;
     private double mOffset;
     private Timer mTimer;
@@ -87,6 +87,8 @@ public class RecordActivity extends AppCompatActivity {
         mRecordingImageLabel = findViewById(R.id.activity_record_record_image_label_ui);
         mRsrpText = findViewById(R.id.activity_record_lte_rsrp_text_ui);
         mRsrqText = findViewById(R.id.activity_record_lte_rsrq_text_ui);
+        mRssnrText = findViewById(R.id.activity_record_rssnr_text_ui);
+        mOperatorText = findViewById(R.id.activity_record_mcc_mnc_text_ui);
         mPciText = findViewById(R.id.activity_record_lte_pci_text_ui);
         mDataPointsText = findViewById(R.id.activity_record_data_points_text_ui);
         mOffsetText = findViewById(R.id.activity_record_offset_text_ui);
@@ -154,16 +156,18 @@ public class RecordActivity extends AppCompatActivity {
                                 if (allCellInfo.get(i).isRegistered() && allCellInfo.get(i) instanceof CellInfoLte) {
                                     CellInfoLte cellInfoLte = (CellInfoLte) allCellInfo.get(i);
                                     CellSignalStrengthLte signalStrengthLte = cellInfoLte.getCellSignalStrength();
+                                    dataReadingCopy.setConnected(1);
 
                                     // Overwrite the SignalStrengthListener values if build is greater than 26 and only the rsrp if value less than 26.
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        dataReadingCopy.setdBm(signalStrengthLte.getDbm());
                                         dataReadingCopy.setRsrp(signalStrengthLte.getRsrp());
                                         dataReadingCopy.setRsrq(signalStrengthLte.getRsrq());
-                                        LteLog.i(TAG, "(VERSION >= 26) rsrp: " + signalStrengthLte.getRsrp() + ", rsrq: " + signalStrengthLte.getRsrq());
-                                    }
-                                    else {
+                                        dataReadingCopy.setRssnr(signalStrengthLte.getRssnr());
+                                        LteLog.i(TAG, "(VERSION >= 26) rsrp: " + signalStrengthLte.getRsrp() + ", rsrq: " + signalStrengthLte.getRsrq() + ", rssnr: " + signalStrengthLte.getRssnr());
+                                    } else {
                                         dataReadingCopy.setRsrp(signalStrengthLte.getDbm()); // dbm = rsrp for values less than build 26.
-                                        LteLog.i(TAG, String.format(Locale.getDefault(),"(VERSION < 26) rsrp: %d", signalStrengthLte.getDbm()));
+                                        LteLog.i(TAG, String.format(Locale.getDefault(), "(VERSION < 26) rsrp: %d", signalStrengthLte.getDbm()));
                                     }
 
                                     // Now get the pci.
@@ -173,9 +177,43 @@ public class RecordActivity extends AppCompatActivity {
                                         if (pci == DataReading.UNAVAILABLE) {
                                             pci = -1;
                                         }
+
+                                        String ntw = String.format("%03d", identityLte.getMcc())+String.format("%02d", identityLte.getMnc());
+
+                                        dataReadingCopy.setOperator(ntw);
                                         dataReadingCopy.setPci(pci);
                                     }
                                 }
+                                // Get not connected cells
+//                                else{
+//                                    CellInfoLte cellInfoLte = (CellInfoLte) allCellInfo.get(i);
+//                                    CellSignalStrengthLte signalStrengthLte = cellInfoLte.getCellSignalStrength();
+//                                    dataReadingCopy.setConnected(0);
+//
+//                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                                        dataReadingCopy.setdBm(signalStrengthLte.getDbm());
+//                                        dataReadingCopy.setRsrp(signalStrengthLte.getRsrp());
+//                                        dataReadingCopy.setRsrq(signalStrengthLte.getRsrq());
+//                                        dataReadingCopy.setRssnr(signalStrengthLte.getRssnr());
+//                                        LteLog.i(TAG, "(VERSION >= 26) rsrp: " + signalStrengthLte.getRsrp() + ", rsrq: " + signalStrengthLte.getRsrq() + ", rssnr: " + signalStrengthLte.getRssnr());
+//                                    } else {
+//                                        dataReadingCopy.setRsrp(signalStrengthLte.getDbm()); // dbm = rsrp for values less than build 26.
+//                                        LteLog.i(TAG, String.format(Locale.getDefault(), "(VERSION < 26) rsrp: %d", signalStrengthLte.getDbm()));
+//                                    }
+//
+//                                    CellIdentityLte identityLte = cellInfoLte.getCellIdentity();
+//                                    if (identityLte != null) {
+//                                        int pci = identityLte.getPci();
+//                                        if (pci == DataReading.UNAVAILABLE) {
+//                                            pci = -1;
+//                                        }
+//
+//                                        String ntw = String.format("%03d", identityLte.getMcc())+String.format("%02d", identityLte.getMnc());
+//                                        dataReadingCopy.setdBm(signalStrengthLte.getDbm());
+//                                        dataReadingCopy.setOperator(ntw);
+//                                        dataReadingCopy.setPci(pci);
+//                                    }
+//                                }
                             }
                         }
                     }
@@ -197,6 +235,11 @@ public class RecordActivity extends AppCompatActivity {
                     dataReadingCopy.setRsrq(DataReading.LOW_RSRQ);
                 }
 
+                // Adjust rssnr
+                if (dataReadingCopy.getRssnr() == DataReading.UNAVAILABLE) {
+                    dataReadingCopy.setRssnr(DataReading.LOW_RSRQ);
+                }
+
                 if (isRecording()) {
                     mDataReadings.add(new DataReading(dataReadingCopy));
                 }
@@ -206,23 +249,27 @@ public class RecordActivity extends AppCompatActivity {
 
                 runOnUiThread(() -> {
                     if (isRecording()) {
-                        if (dataReadingCopy.getRsrp() >= DataReading.EXECELLENT_RSRP_THRESHOLD) {
-                            mSignalStrengthText.setText(getResources().getString(R.string.activity_record_signal_strength_excellent));
+                        if (dataReadingCopy.getConnected()==1) {
+                            if (dataReadingCopy.getRsrp() >= DataReading.EXECELLENT_RSRP_THRESHOLD) {
+                                mSignalStrengthText.setText(getResources().getString(R.string.activity_record_signal_strength_excellent));
+                            }
+                            else if (DataReading.EXECELLENT_RSRP_THRESHOLD > dataReadingCopy.getRsrp() && dataReadingCopy.getRsrp() >= DataReading.GOOD_RSRP_THRESHOLD) {
+                                mSignalStrengthText.setText(getResources().getString(R.string.activity_record_signal_strength_good));
+                            }
+                            else if (DataReading.GOOD_RSRP_THRESHOLD > dataReadingCopy.getRsrp() && dataReadingCopy.getRsrp() >= DataReading.POOR_RSRP_THRESHOLD) {
+                                mSignalStrengthText.setText(getResources().getString(R.string.activity_record_signal_strength_poor));
+                            }
+                            else {
+                                mSignalStrengthText.setText(getResources().getString(R.string.activity_record_signal_strength_no_signal));
+                            }
+                            mRsrpText.setText(String.format(Locale.getDefault(),"%d", dataReadingCopy.getRsrp()));
+                            mRsrqText.setText(String.format(Locale.getDefault(),"%d", dataReadingCopy.getRsrq()));
+                            mRssnrText.setText(String.format(Locale.getDefault(),"%d", dataReadingCopy.getRssnr()));
+                            mOperatorText.setText(dataReadingCopy.getOperator());
+                            mPciText.setText(dataReadingCopy.getPci() == -1 ? "N/A" : String.format(Locale.getDefault(),"%d", dataReadingCopy.getPci()));
+                            mDataPointsText.setText(String.format(Locale.getDefault(),"%d", numDataReadings));
+                            mOffsetText.setText(String.format(Locale.getDefault(),"%.1f", mOffset));
                         }
-                        else if (DataReading.EXECELLENT_RSRP_THRESHOLD > dataReadingCopy.getRsrp() && dataReadingCopy.getRsrp() >= DataReading.GOOD_RSRP_THRESHOLD) {
-                            mSignalStrengthText.setText(getResources().getString(R.string.activity_record_signal_strength_good));
-                        }
-                        else if (DataReading.GOOD_RSRP_THRESHOLD > dataReadingCopy.getRsrp() && dataReadingCopy.getRsrp() >= DataReading.POOR_RSRP_THRESHOLD) {
-                            mSignalStrengthText.setText(getResources().getString(R.string.activity_record_signal_strength_poor));
-                        }
-                        else {
-                            mSignalStrengthText.setText(getResources().getString(R.string.activity_record_signal_strength_no_signal));
-                        }
-                        mRsrpText.setText(String.format(Locale.getDefault(),"%d", dataReadingCopy.getRsrp()));
-                        mRsrqText.setText(String.format(Locale.getDefault(),"%d", dataReadingCopy.getRsrq()));
-                        mPciText.setText(dataReadingCopy.getPci() == -1 ? "N/A" : String.format(Locale.getDefault(),"%d", dataReadingCopy.getPci()));
-                        mDataPointsText.setText(String.format(Locale.getDefault(),"%d", numDataReadings));
-                        mOffsetText.setText(String.format(Locale.getDefault(),"%.1f", mOffset));
                     }
                 });
             }

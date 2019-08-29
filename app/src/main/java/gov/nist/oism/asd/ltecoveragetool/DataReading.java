@@ -24,6 +24,7 @@ class DataReading implements Serializable {
     static final int UNAVAILABLE = 2147483647;
     static final int LOW_RSRP = -141;
     static final int LOW_RSRQ = -20;
+    static final int LOW_RSSNR = -20;
     static final int PCI_NA = -1;
     static final int EXECELLENT_RSRP_THRESHOLD = -95;
     static final int GOOD_RSRP_THRESHOLD = -110;
@@ -32,20 +33,30 @@ class DataReading implements Serializable {
     private Date timestamp;
     private int rsrp;
     private int rsrq;
+    private int rssnr;
+    private int dBm;
     private int pci;
+    private int connected;
+    private String operator;
 
     DataReading() {
         this.timestamp = new Date();
         this.rsrp = UNAVAILABLE;
         this.rsrq = UNAVAILABLE;
+        this.rssnr = UNAVAILABLE;
+        this.dBm = UNAVAILABLE;
         this.pci = PCI_NA;
+        this.operator = "";
     }
 
     DataReading(DataReading dataReading) {
         this.timestamp = new Date();
         this.rsrp = dataReading.rsrp;
         this.rsrq = dataReading.rsrq;
+        this.rssnr = dataReading.rssnr;
+        this.dBm = dataReading.dBm;
         this.pci = dataReading.pci;
+        this.operator = dataReading.operator;
     }
 
     Date getTimestamp() {
@@ -68,11 +79,43 @@ class DataReading implements Serializable {
         this.rsrq = rsrq;
     }
 
+    int getRssnr() {
+        return rssnr;
+    }
+
+    void setRssnr(int rssnr) {
+        this.rssnr = rssnr;
+    }
+
+    int getdBm() {
+        return rssnr;
+    }
+
+    void setdBm(int dBm) {
+        this.dBm = dBm;
+    }
+
     int getPci() {
         return pci;
     }
 
     void setPci(int pci) {
         this.pci = pci;
+    }
+
+    int getConnected() {
+        return connected;
+    }
+
+    void setConnected(int connected) {
+        this.connected = connected;
+    }
+
+    String getOperator() {
+        return operator;
+    }
+
+    void setOperator(String operator) {
+        this.operator = operator;
     }
 }

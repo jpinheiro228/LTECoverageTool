@@ -97,6 +97,8 @@
     <string name="activity_record_lte_pci_label_text">LTE PCI</string>
     <string name="activity_record_data_points_label_text">Data points</string>
     <string name="activity_record_offset_label_text">Offset (dB)</string>
+    <string name="activity_record_rssnr_label_text">LTE RSSNR (dBm)</string>
+    <string name="activity_record_network_label_text">MCC + MNC</string>
     <string name="activity_record_uncertainty_statement_text"><u>*Uncertainty Statement</u></string>
     <string name="activity_record_signal_strength_excellent">Excellent</string>
     <string name="activity_record_signal_strength_good">Good</string>
