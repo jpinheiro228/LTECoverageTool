@@ -17,18 +17,20 @@
 package gov.nist.oism.asd.ltecoveragetool;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import android.telephony.CellIdentityLte;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
+import android.telephony.CellSignalStrength;
 import android.telephony.CellSignalStrengthLte;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
@@ -50,6 +52,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import gov.nist.oism.asd.ltecoveragetool.util.LteLog;
 
@@ -71,6 +75,8 @@ public class RecordActivity extends AppCompatActivity {
     private double mOffset;
     private Timer mTimer;
     private List<DataReading> mDataReadings;
+    private AtomicInteger mTicksSinceLastCellInfoUpdate;
+    private AtomicBoolean mCellInfoRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,6 +135,11 @@ public class RecordActivity extends AppCompatActivity {
 
         mSignalStrengthListener = new SignalStrengthListener();
 
+        // Specifically for AndroidX and higher. Should call a refresh of cell info, otherwise there might be stale data.
+        // See getAllCellInfo() docs from TelephonyManager.
+        mTicksSinceLastCellInfoUpdate = new AtomicInteger(0);
+        mCellInfoRefresh = new AtomicBoolean(true);
+
         // Now do the recording. We want to keep recording in the background so start and stop
         // in onCreate and onDestroy.
         ((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).listen(mSignalStrengthListener, SignalStrengthListener.LISTEN_SIGNAL_STRENGTHS);
@@ -148,13 +159,14 @@ public class RecordActivity extends AppCompatActivity {
                 }
 
                 try {
-                    if (ActivityCompat.checkSelfPermission(RecordActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.checkSelfPermission(RecordActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
                         List<CellInfo> allCellInfo = telephonyManager.getAllCellInfo();
                         if (allCellInfo != null) {
-                            for (int i = 0; i < allCellInfo.size(); i++) {
-                                if (allCellInfo.get(i).isRegistered() && allCellInfo.get(i) instanceof CellInfoLte) {
-                                    CellInfoLte cellInfoLte = (CellInfoLte) allCellInfo.get(i);
+                            for (CellInfo cellInfo : allCellInfo) {
+                                LteLog.i(TAG, cellInfo.toString());
+                                if (cellInfo.isRegistered() && cellInfo instanceof CellInfoLte) {
+                                    CellInfoLte cellInfoLte = (CellInfoLte) cellInfo;
                                     CellSignalStrengthLte signalStrengthLte = cellInfoLte.getCellSignalStrength();
                                     dataReadingCopy.setConnected(1);
 
@@ -216,6 +228,23 @@ public class RecordActivity extends AppCompatActivity {
 //                                }
                             }
                         }
+
+                        // Anything larger than AndroidX, call for a refresh of the cell info.
+                        // See getAllCellInfo() docs from TelephonyManager.
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && mTicksSinceLastCellInfoUpdate.getAndIncrement() >= 10 && mCellInfoRefresh.get()) {
+
+                            LteLog.i(TAG,"Requesting refreshed cell info on AndroidX or higher");
+                            mCellInfoRefresh.set(false);
+                            telephonyManager.requestCellInfoUpdate(getMainExecutor(), new TelephonyManager.CellInfoCallback() {
+
+                                @Override
+                                public void onCellInfo(List<CellInfo> cellInfos) {
+                                    LteLog.i(TAG,"Getting refreshed cell info on AndroidX or higher");
+                                    mTicksSinceLastCellInfoUpdate.set(0);
+                                    mCellInfoRefresh.set(true);
+                                }
+                            });
+                        }
                     }
                 }
                 catch (Exception caught) {
@@ -270,6 +299,14 @@ public class RecordActivity extends AppCompatActivity {
                             mDataPointsText.setText(String.format(Locale.getDefault(),"%d", numDataReadings));
                             mOffsetText.setText(String.format(Locale.getDefault(),"%.1f", mOffset));
                         }
+                        //<<<<<<< HEAD
+                        //=======
+                        mRsrpText.setText(String.format(Locale.getDefault(), "%d", dataReadingCopy.getRsrp()));
+                        mRsrqText.setText(String.format(Locale.getDefault(), "%d", dataReadingCopy.getRsrq()));
+                        mPciText.setText(dataReadingCopy.getPci() == -1 ? "N/A" : String.format(Locale.getDefault(), "%d", dataReadingCopy.getPci()));
+                        mDataPointsText.setText(String.format(Locale.getDefault(), "%d", numDataReadings));
+                        mOffsetText.setText(String.format(Locale.getDefault(), "%.1f", mOffset));
+                        //>>>>>>> 9e4febb0a23ac47c91ca1e11aed28e614bbf0fa8
                     }
                 });
             }
@@ -361,16 +398,38 @@ public class RecordActivity extends AppCompatActivity {
         @Override
         public void onSignalStrengthsChanged(SignalStrength signalStrength) {
             LteLog.i(TAG, "onSignalStrengthsChanged: " + signalStrength.toString());
-            String[] values = signalStrength.toString().split(" ");
-            if (values != null && values.length > 12) {
-                int rsrp = Integer.parseInt(values[9]);
-                int rsrq = Integer.parseInt(values[10]);
-                synchronized (MUTEX) {
-                    mCurrentReading.setRsrp(rsrp);
-                    mCurrentReading.setRsrq(rsrq);
-                    mCurrentReading.setPci(DataReading.PCI_NA);
+
+            // AndroidX changed the format of the signal strength.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                String[] values = signalStrength.toString().split(" ");
+                if (values != null && values.length > 12) {
+                    try {
+                        int rsrp = Integer.parseInt(values[9]);
+                        int rsrq = Integer.parseInt(values[10]);
+                        synchronized (MUTEX) {
+                            mCurrentReading.setRsrp(rsrp);
+                            mCurrentReading.setRsrq(rsrq);
+                            mCurrentReading.setPci(DataReading.PCI_NA);
+                        }
+                        LteLog.i(TAG, String.format(Locale.getDefault(), "rsrp: %d, rsrq: %d", rsrp, rsrq));
+                    }
+                    catch (Exception caught) {
+                        LteLog.i(TAG, "Caught an error parsing signal strength");
+                    }
                 }
-                LteLog.i(TAG, String.format(Locale.getDefault(),"rsrp: %d, rsrq: %d", rsrp, rsrq));
+            }
+            else {
+                List<CellSignalStrength> cellSignalStrengths = signalStrength.getCellSignalStrengths();
+                if (cellSignalStrengths != null) {
+                    for (CellSignalStrength cellSignalStrength : cellSignalStrengths) {
+                        if (cellSignalStrength instanceof CellSignalStrengthLte) {
+                            synchronized (MUTEX) {
+                                mCurrentReading.setRsrp(((CellSignalStrengthLte) cellSignalStrength).getRsrp());
+                                mCurrentReading.setRsrq(((CellSignalStrengthLte) cellSignalStrength).getRsrq());
+                            }
+                        }
+                    }
+                }
             }
 
             super.onSignalStrengthsChanged(signalStrength);
